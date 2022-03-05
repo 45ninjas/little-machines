@@ -22,16 +22,23 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
-        List<Component> components;
+        Dictionary<string, Stack<Component>> avalibleComponents = new Dictionary<string, Stack<Component>>()
+        {
+            {"skidsteer", new Stack<Component>(new[] { new SkidSteer() }) },
+            {"piston", new Stack<Component>(new[] { new Piston(), new Piston(), new Piston(), new Piston() }) },
+            {"pivot", new Stack<Component>(new[] { new Pivot(), new Pivot(), new Pivot(), new Pivot() }) },
+            {"cruise-control", new Stack<Component>(new[] { new CruiseControl() }) }
+        };
 
         List<IMyShipController> controllers;
         IMyShipController activeController;
 
         CockpitInputs input;
 
-        ILogger logger;
+        MyIniKey logSurfaceKey = new MyIniKey("lm.core", "log-surface");
+        TextConsole logger;
 
-        const string VERSION = "0.1.0-alpha";
+        const string HEADER = "Little Machines\nVersion 0.2.0 alpha";
 
         public enum MachineState
         {
@@ -45,45 +52,35 @@ namespace IngameScript
 
         public Program()
         {
-            var surface = Me.GetSurface(0);
-            surface.WriteText($"Little Machines\n{VERSION}\n");
+            // Parse the Custom Data.
+            var ini = new MyIni();
+            if (!ini.TryParse(Me.CustomData))
+                throw new Exception("Unable to Parse config.");
+
+            // Get a surface from the cfg or use the one on the programmable block.
+            var surface = SurfaceFromCfg(ini, logSurfaceKey);
+            if (surface == null)
+                surface = Me.GetSurface(0);
+
+            // Clear the console with a little header message. Then create our logger.
+            surface.WriteText(HEADER);
             logger = new TextConsole(surface);
+
+            logger.PrintLn($"Avalible Components: {string.Join(", ", avalibleComponents.Keys)}");
+
+            // Get all controllers on this ship..
             controllers = new List<IMyShipController>();
             GridTerminalSystem.GetBlocksOfType(controllers);
 
             if (controllers.Count == 0)
                 throw new Exception("No Cockpit or Remote found.");
 
-            components = new List<Component>()
-            {
-                new SkidSteer(),
-            };
-
-            MyIni ini = new MyIni();
-            if (string.IsNullOrWhiteSpace(Me.CustomData))
-            {
-                logger.PrintLn("Custom Data is empty.");
-                foreach (var component in components)
-                {
-                    component.WriteCfg(ini);
-                    logger.PrintLn($"{component.GetType().Name}: Writing default Cfg");
-                }
-                logger.PrintLn("Wrote Cfg to custom data");
-                Me.CustomData = ini.ToString();
-            }
-
-            if(!ini.TryParse(Me.CustomData))
-                throw new Exception("Failed to parse CustomData");
-
-            foreach ( var component in components)
-            {
-                logger.PrintLn($"Loading: {component.GetType().Name}");
-                component.Terminal = GridTerminalSystem;
-                component.logger = logger;
-                component.ReadCfg(ini);
-            }
-            logger.PrintLn($"Loaded {components.Count} compoents.");
+            // Do this mess...
+            ComponentsFromCfg(ini);
+            Me.CustomData = ini.ToString();
+            logger.PrintLn($"Loaded {components.Count} components.");
             SetState(MachineState.Standby);
+            logger.PrintLn("Finihsed Startup");
         }
 
         void SetState(MachineState state)
@@ -113,15 +110,15 @@ namespace IngameScript
 
         void Start()
         {
-            foreach (var component in components)
+            foreach (var component in EnabledComponents())
             {
                 try
                 {
-                    component.Start();
+                    component.Start(activeController);
                 }
                 catch (Exception e)
                 {
-                    logger.PrintLn($"{component.GetType().Name}: Failed to Start!");
+                    logger.PrintLn($"{component.section}: Failed to Start!");
                     logger.PrintLn(e.ToString());
                     SetState(MachineState.Error);
                 }
@@ -129,7 +126,7 @@ namespace IngameScript
         }
         void Stop()
         {
-            foreach (var component in components)
+            foreach (var component in components.Values)
             {
                 try
                 {
@@ -137,7 +134,7 @@ namespace IngameScript
                 }
                 catch (Exception e)
                 {
-                    logger.PrintLn($"{component.GetType().Name}: Failed to Stop!");
+                    logger.PrintLn($"{component.section}: Failed to Stop!");
                     logger.PrintLn(e.ToString());
                     SetState(MachineState.Error);
                 }
@@ -146,7 +143,7 @@ namespace IngameScript
         void Tick()
         {
             input = new CockpitInputs(activeController);
-            foreach (var component in components)
+            foreach (var component in EnabledComponents())
             {
                 try
                 {
@@ -191,6 +188,23 @@ namespace IngameScript
                 }
                 else
                     Tick();
+            }
+
+            if(!string.IsNullOrWhiteSpace(argument))
+            {
+                var args = new List<string>(argument.Split(' '));
+                if(args.Count > 0)
+                {
+                    var cmd = args[0];
+                    args.RemoveAt(0);
+
+                    Component component;
+                    if(!components.TryGetValue(cmd, out component))
+                    {
+                        logger.PrintLn($"Component {cmd} not found.");
+                    }
+                    component.Execute(args);
+                }
             }
         }
 

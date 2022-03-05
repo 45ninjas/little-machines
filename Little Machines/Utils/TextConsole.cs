@@ -55,8 +55,6 @@ namespace IngameScript
             public void SetSurface(IMyTextSurface surface)
             {
                 sb = new StringBuilder();
-                surface.Font = "Monospace";
-                surface.TextPadding = 0;
                 surface.ContentType = ContentType.TEXT_AND_IMAGE;
                 this.surface = surface;
                 float aspect = surface.SurfaceSize.Y / surface.SurfaceSize.X;

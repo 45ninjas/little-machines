@@ -1,1 +1,26 @@
 ﻿Little Machines. Go to https://git.tomp.id.au/45Ninjas/little-machines/wiki for help if it exists?
+
+Text Config:
+
+[lm.config]
+console display=Cockpit:1
+
+[lm.components]
+skidsteer=skidsteer
+boom=generic
+bucket=generic
+
+[boom]
+speed=0.5
+smoothing=0.15
+property=Velocity
+
+[skidsteer]
+speed=40
+smoothing=0.15
+
+
+[bucket]
+speed=20
+smoothing=0.2
+property=velocity

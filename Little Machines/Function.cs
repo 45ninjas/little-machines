@@ -22,43 +22,35 @@ namespace IngameScript
 {
     partial class Program
     {
-        public class Function<T> : ISerializeCfg where T : class, IMyTerminalBlock
+        public class Function<T> where T : class, IMyTerminalBlock
         {
             readonly string name;
-            readonly string section;
             public string query;
             public float speed;
 
-            public List<T> Blocks;
+            public readonly List<T> Blocks = new List<T>();
 
             public Function(string name)
             {
                 this.name = name;
-                section = $"function.{name}";
             }
 
-            public Function(string name, string section)
+            public void ReadCfg(MyIni ini, string section)
             {
-                this.name = name;
-                this.section = section;
+                speed = ini.Get(section, $"{name}.speed").ToSingle();
+                query = ini.Get(section, $"{name}.query").ToString();
             }
 
-            public void ReadCfg(MyIni ini)
+            public void WriteCfg(MyIni ini, string section)
             {
-                speed = ini.Get(section, "speed").ToSingle();
-                query = ini.Get(section, "query").ToString();
-            }
-
-            public void WriteCfg(MyIni ini)
-            {
-                ini.Set(section, "speed", speed);
-                ini.Set(section, "query", query);
-                ini.SetSectionComment(section, $"Using: {typeof(T).Name}");
+                ini.Set(section, $"{name}.speed", speed);
+                ini.Set(section, $"{name}.query", query);
+                //ini.SetSectionComment(section, $"Using: {typeof(T).Name}");
             }
 
             public void Initialize(IMyGridTerminalSystem terminal)
             {
-                Blocks = new List<T>();
+                Blocks.Clear();
                 var group = terminal.GetBlockGroupWithName(query);
                 if (group != null)
                     group.GetBlocksOfType<T>(Blocks);

@@ -38,7 +38,12 @@
   <Import Project="MDK/MDK.options.props" />
   <Import Project="MDK/MDK.paths.props" Condition="exists('MDK/MDK.paths.props')" />
   <ItemGroup>
-    <Compile Include="TextConsole.cs" />
+    <Compile Include="Components\Pivot.cs" />
+    <Compile Include="Components\Generic.cs" />
+    <Compile Include="Components\CruiseControl.cs" />
+    <Compile Include="Input.cs" />
+    <Compile Include="Utils\SurfaceGetter.cs" />
+    <Compile Include="Utils\TextConsole.cs" />
     <Compile Include="Function.cs" />
     <Compile Include="Component.cs" />
     <Compile Include="Components\Skid Steer.cs" />
