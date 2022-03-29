@@ -26,7 +26,6 @@ namespace IngameScript
         Dictionary<string, Component> components;
         public class Component : ISerializeCfg
         {
-            public IMyGridTerminalSystem Terminal;
             public string section;
             public Program lm;
 
@@ -45,9 +44,9 @@ namespace IngameScript
                     }
                 }
             }
-            private bool _enabled = false;
+            private bool _enabled = true;
 
-            public virtual void Tick(CockpitInputs inputs) { }
+            public virtual void Tick() { }
             public virtual void Stop() { }
             public virtual void Start(IMyShipController cockpit) { }
             public virtual void WriteCfg(MyIni ini) { }
@@ -97,7 +96,6 @@ namespace IngameScript
 
             var component = avalibleComponents[kind].Pop();
             component.section = section;
-            component.Terminal = GridTerminalSystem;
             component.lm = this;
 
             if (ini.ContainsSection(section))
@@ -106,14 +104,6 @@ namespace IngameScript
                 component.WriteCfg(ini);
 
             return component;
-        }
-
-        public interface ILocomotion
-        {
-            void Move(float forward, float turning, float brakes);
-            float MaxSpeed {
-                get;
-            }
         }
     }
 }

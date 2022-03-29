@@ -25,20 +25,15 @@ namespace IngameScript
         Dictionary<string, Stack<Component>> avalibleComponents = new Dictionary<string, Stack<Component>>()
         {
             {"skidsteer", new Stack<Component>(new[] { new SkidSteer() }) },
-            {"piston", new Stack<Component>(new[] { new Piston(), new Piston(), new Piston(), new Piston() }) },
-            {"pivot", new Stack<Component>(new[] { new Pivot(), new Pivot(), new Pivot(), new Pivot() }) },
-            {"cruise-control", new Stack<Component>(new[] { new CruiseControl() }) }
+            {"generic", new Stack<Component>(new[] { new Generic(), new Generic(), new Generic(), new Generic(),new Generic(),new Generic(),new Generic() }) },
         };
 
         List<IMyShipController> controllers;
         IMyShipController activeController;
-
-        CockpitInputs input;
-
         MyIniKey logSurfaceKey = new MyIniKey("lm.core", "log-surface");
         TextConsole logger;
 
-        const string HEADER = "Little Machines\nVersion 0.2.0 alpha";
+        const string HEADER = "Little Machines\nVersion 0.3.1 alpha";
 
         public enum MachineState
         {
@@ -48,7 +43,7 @@ namespace IngameScript
             Error
         }
 
-        public MachineState State { get; protected set;}
+        public MachineState State { get; protected set; }
 
         public Program()
         {
@@ -142,12 +137,11 @@ namespace IngameScript
         }
         void Tick()
         {
-            input = new CockpitInputs(activeController);
             foreach (var component in EnabledComponents())
             {
                 try
                 {
-                    component.Tick(input);
+                    component.Tick();
                 }
                 catch (Exception e)
                 {
@@ -165,11 +159,11 @@ namespace IngameScript
 
         public void Main(string argument, UpdateType updateSource)
         {
-            if(updateSource.HasFlag(UpdateType.Update100) && State == MachineState.Standby)
+            if (updateSource.HasFlag(UpdateType.Update100) && State == MachineState.Standby)
             {
                 foreach (var controller in controllers)
                 {
-                    if(controller.IsUnderControl)
+                    if (controller.IsUnderControl)
                     {
                         SetState(MachineState.Running);
                         activeController = controller;
@@ -178,9 +172,9 @@ namespace IngameScript
                     }
                 }
             }
-            if(updateSource.HasFlag(UpdateType.Update1) && State == MachineState.Running)
+            if (updateSource.HasFlag(UpdateType.Update1) && State == MachineState.Running)
             {
-                if(!activeController.IsUnderControl)
+                if (!activeController.IsUnderControl)
                 {
                     SetState(MachineState.Standby);
                     activeController = null;
@@ -190,16 +184,16 @@ namespace IngameScript
                     Tick();
             }
 
-            if(!string.IsNullOrWhiteSpace(argument))
+            if (!string.IsNullOrWhiteSpace(argument))
             {
                 var args = new List<string>(argument.Split(' '));
-                if(args.Count > 0)
+                if (args.Count > 0)
                 {
                     var cmd = args[0];
                     args.RemoveAt(0);
 
                     Component component;
-                    if(!components.TryGetValue(cmd, out component))
+                    if (!components.TryGetValue(cmd, out component))
                     {
                         logger.PrintLn($"Component {cmd} not found.");
                     }
@@ -212,17 +206,6 @@ namespace IngameScript
         {
             void WriteCfg(MyIni ini);
             void ReadCfg(MyIni ini);
-        }
-
-        public struct CockpitInputs
-        {
-            public Vector3 move;
-            public Vector3 rotation;
-            public CockpitInputs(IMyShipController controller)
-            {
-                move = controller.MoveIndicator;
-                rotation = new Vector3(controller.RotationIndicator, controller.RollIndicator);
-            }
         }
     }
 }

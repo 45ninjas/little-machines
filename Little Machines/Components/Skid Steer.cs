@@ -22,42 +22,35 @@ namespace IngameScript
 {
     partial class Program
     {
-        public class SkidSteer : Component, ILocomotion
+        public class SkidSteer : Component
         {
-            public Function<IMyMotorStator> wheels = new Function<IMyMotorStator>("wheels")
-            {
-                query = "Wheels",
-                speed = 40f
-            };
+            public Blocks<IMyMotorStator> wheels = new Blocks<IMyMotorStator>();
             Dictionary<long, float> wheelDots;
 
             public float Smoothing = 0.1f;
-
-            public float BreakingTorque = 40000;
+            string wheelQuery = "Drive Wheels";
+            public float Speed = 40;
 
             float forwardInput;
             float turnInput;
 
-            public float MaxSpeed
-            {
-                get { return wheels.speed; }
-            }
-
             public override void Start(IMyShipController cockpit)
             {
                 // Get the wheels.
-                wheels.Initialize(Terminal);
-                Log($"Found {wheels.Blocks.Count} Wheels");
+                wheels.GetBlocks(lm.GridTerminalSystem, wheelQuery);
+                Log($"Found {wheels.Count} Wheels");
 
-                if (wheels.Blocks.Count < 0)
+                if (wheels.Count < 0)
                     throw new Exception("No wheels found.");
 
-                //Log($"Using '{cockpit.CustomName}' as direction of grid.");
+                // Get a vector that points to the right of the cockpit.
                 var right = cockpit.WorldMatrix.Right;
+                // Get the center of mass.
                 var com = cockpit.CenterOfMass;
 
-                wheelDots = new Dictionary<long, float>(wheels.Blocks.Count);
-                foreach (var wheel in wheels.Blocks)
+                // Fill a dict. of the dot product of each wheel from the center of mass.
+                wheelDots = new Dictionary<long, float>(wheels.Count);
+                foreach (IMyMotorStator wheel in wheels)
                 {
                     var posDot = (com - wheel.GetPosition()).Dot(right);
                     var dirDot = Math.Abs(wheel.WorldMatrix.Up.Dot(right));
@@ -68,42 +61,33 @@ namespace IngameScript
 
             public override void Stop()
             {
-                Move(0f, 0f, 1f);
+                // Stop all the wheels from spinning.
+                wheels.Set("Velocity", 0f);
             }
 
-            public override void Tick(CockpitInputs inputs)
+            public override void Tick()
             {
-                forwardInput = MathHelper.Lerp(forwardInput, inputs.move.Z, Smoothing);
-                turnInput = MathHelper.Lerp(turnInput, inputs.move.X, Smoothing);
-                Move(forwardInput * MaxSpeed, turnInput, 0);
+                forwardInput = MathHelper.Lerp(forwardInput, lm.GetAxis(Axis.Forward), Smoothing);
+                turnInput = MathHelper.Lerp(turnInput, lm.GetAxis(Axis.Horizontal), Smoothing);
+
+                foreach (IMyMotorStator wheel in wheels)
+                {
+                    float dot = wheelDots[wheel.EntityId];
+                    wheel.TargetVelocityRPM = (turnInput * -dot + forwardInput) * dot * Speed;
+                }
             }
 
             public override void ReadCfg(MyIni ini)
             {
                 Smoothing = ini.Get(section, "smoothing").ToSingle(Smoothing);
-                BreakingTorque = ini.Get(section, "breaking torque").ToSingle(BreakingTorque);
-                wheels.ReadCfg(ini, section);
+                Speed = ini.Get(section, "speed").ToSingle(Speed);
+                wheelQuery = ini.Get(section, "wheels").ToString(wheelQuery);
             }
             public override void WriteCfg(MyIni ini)
             {
                 ini.Set(section, "smoothing", Smoothing);
-                ini.Set(section, "breaking torque", BreakingTorque);
-                wheels.WriteCfg(ini, section);
-            }
-
-            public void Move(float speed, float turning, float brakes)
-            {
-                // Other components can make the machine move (auto pilot/crusie control). so we
-                // need to get the percentage of our max speed for skid steering.
-                float fwdInput = speed / MaxSpeed;
-
-                foreach (var wheel in wheels.Blocks)
-                {
-                    float dot = wheelDots[wheel.EntityId];
-                    wheel.TargetVelocityRPM = (turning * -dot + fwdInput) * dot * MaxSpeed;
-                    wheel.BrakingTorque = brakes * BreakingTorque;
-                }
-                return;
+                ini.Set(section, "speed", Speed);
+                ini.Set(section, "wheels", wheelQuery);
             }
         }
     }

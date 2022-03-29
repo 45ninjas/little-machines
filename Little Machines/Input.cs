@@ -22,28 +22,47 @@ namespace IngameScript
 {
     partial class Program
     {
-        public class Input
+        public enum Axis
         {
-            public Input()
-            {
-
-            }
-
-            public void Set(IMyShipController controller)
-            {
-
-            }
+            None,
+            Horizontal,
+            Vertical,
+            Forward,
+            Pitch,
+            Yaw,
+            Roll
         }
-        [Flags]
-        public enum InputMask
+
+        public Axis AxisFromString(string val)
         {
-            None = 0,
-            LeftRight = 1,
-            UpDown = 2,
-            FowardBack = 4,
-            Pitch = 8,
-            Yaw = 16,
-            Roll = 32
+            Axis axis;
+            if (!Enum.TryParse(val, true, out axis)) {
+                throw new Exception($"'{val}' is not a valid axis");
+            }
+            return axis;
+        }
+
+        public float GetAxis(Axis axis)
+        {
+            if (activeController == null || !activeController.CanControlShip)
+                return 0f;
+            switch (axis)
+            {
+                case Axis.Horizontal:
+                    return activeController.MoveIndicator.X;
+                case Axis.Vertical:
+                    return activeController.MoveIndicator.Y;
+                case Axis.Forward:
+                    return activeController.MoveIndicator.Z;
+                case Axis.Pitch:
+                    return activeController.RotationIndicator.X;
+                case Axis.Yaw:
+                    return activeController.RotationIndicator.Y;
+                case Axis.Roll:
+                    return activeController.RollIndicator;
+                default:
+                    return 0f;
+            }
         }
     }
 }
