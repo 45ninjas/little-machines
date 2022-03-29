@@ -39,7 +39,7 @@
   <Import Project="MDK/MDK.paths.props" Condition="exists('MDK/MDK.paths.props')" />
   <ItemGroup>
     <Compile Include="Components\Pivot.cs" />
-    <Compile Include="Components\Generic.cs" />
+    <Compile Include="Components\Piston.cs" />
     <Compile Include="Components\CruiseControl.cs" />
     <Compile Include="Input.cs" />
     <Compile Include="Utils\SurfaceGetter.cs" />
