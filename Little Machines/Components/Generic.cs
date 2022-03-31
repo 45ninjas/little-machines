@@ -28,11 +28,10 @@ namespace IngameScript
             public string Query = "Blocks";
             public float Speed = 1f;
             public float Smoothing = 0.01f;
-            public float MaxSpeed = 1f;
             public string PropertyId = "Velocity";
             public Axis InputAxis = Axis.Roll;
 
-            float speed;
+            float actualSpeed;
 
             public override void Start(IMyShipController cockpit)
             {
@@ -42,6 +41,8 @@ namespace IngameScript
                     if (blk.GetProperty(PropertyId) == null)
                         Log($"'{PropertyId}' property absent on '{blk.CustomName}' block.");
                 }
+
+                Log($"Found {blocks.Count} blocks.");
             }
 
             public override void Stop()
@@ -51,15 +52,14 @@ namespace IngameScript
 
             public override void Tick()
             {
-                speed = MathHelper.Lerp(speed, lm.GetAxis(InputAxis) * Speed, Smoothing);
-                speed = MathHelper.Clamp(speed, -MaxSpeed, MaxSpeed);
-                blocks.Set(PropertyId, speed);
+                actualSpeed = MathHelper.Lerp(actualSpeed, lm.GetAxis(InputAxis) * Speed, Smoothing);
+                actualSpeed = MathHelper.Clamp(actualSpeed, -Speed, Speed);
+                blocks.Set(PropertyId, actualSpeed);
             }
 
             public override void ReadCfg(MyIni ini)
             {
                 Smoothing = ini.Get(section, "smoothing").ToSingle(Smoothing);
-                MaxSpeed = ini.Get(section, "max-speed").ToSingle(MaxSpeed);
                 Speed = ini.Get(section, "speed").ToSingle(Speed);
                 Query = ini.Get(section, "query").ToString(Query);
                 PropertyId = ini.Get(section, "property id").ToString(PropertyId);
@@ -68,7 +68,6 @@ namespace IngameScript
             public override void WriteCfg(MyIni ini)
             {
                 ini.Set(section, "smoothing", Smoothing);
-                ini.Set(section, "max-speed", MaxSpeed);
                 ini.Set(section, "speed", Speed);
                 ini.Set(section, "query", Query);
                 ini.Set(section, "property id", PropertyId);

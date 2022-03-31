@@ -38,7 +38,6 @@ namespace IngameScript
             {
                 // Get the wheels.
                 wheels.GetBlocks(lm.GridTerminalSystem, wheelQuery);
-                Log($"Found {wheels.Count} Wheels");
 
                 if (wheels.Count < 0)
                     throw new Exception("No wheels found.");
@@ -53,7 +52,6 @@ namespace IngameScript
                 foreach (IMyMotorStator wheel in wheels)
                 {
                     var posDot = (com - wheel.GetPosition()).Dot(right);
-                    var dirDot = Math.Abs(wheel.WorldMatrix.Up.Dot(right));
                     wheelDots.Add(wheel.EntityId, (float)posDot);
                 }
                 Log($"Found: {wheelDots.Count} wheels.");
