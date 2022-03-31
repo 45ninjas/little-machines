@@ -26,6 +26,7 @@ namespace IngameScript
         {
             {"skidsteer", new Stack<Component>(new[] { new SkidSteer() }) },
             {"generic", new Stack<Component>(new[] { new Generic(), new Generic(), new Generic(), new Generic(),new Generic(),new Generic(),new Generic() }) },
+            {"pivot", new Stack<Component>(new[] { new Pivot(), new Pivot() }) },
         };
 
         List<IMyShipController> controllers;
@@ -33,7 +34,7 @@ namespace IngameScript
         MyIniKey logSurfaceKey = new MyIniKey("lm.core", "log-surface");
         TextConsole logger;
 
-        const string HEADER = "Little Machines\nVersion 0.3.1 alpha";
+        const string HEADER = "Little Machines\nVersion 0.3.2 alpha";
 
         public enum MachineState
         {
