@@ -57,7 +57,6 @@ namespace IngameScript
                 Log("Has 0 commands.");
             }
         }
-
         public IEnumerable<Component> EnabledComponents() => components.Values.Where(x => x.Enabled);
         public void ComponentsFromCfg(MyIni ini)
         {
@@ -71,7 +70,7 @@ namespace IngameScript
             {
                 try
                 {
-                    string section = "lm." + key.Name;
+                    string section = key.Name;
                     var kind = ini.Get(key).ToString();
                     var component = ComponentFromCfg(ini, section, kind);
                     components.Add(key.Name, component);
