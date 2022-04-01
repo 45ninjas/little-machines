@@ -84,22 +84,21 @@ namespace IngameScript
         {
             if (state == State)
                 return;
-
-            char stateChar = '';
+            string stateText = "INI";
             switch (state)
             {
                 case MachineState.Error:
                     Runtime.UpdateFrequency = UpdateFrequency.None;
-                    stateChar = '';
+                    stateText = "ERR";
                     logger.PrintLn("Stopped by Error!");
                     break;
                 case MachineState.Standby:
                     Runtime.UpdateFrequency = UpdateFrequency.Update100;
-                    stateChar = '';
+                    stateText = "SBY";
                     break;
                 case MachineState.Running:
                     Runtime.UpdateFrequency = UpdateFrequency.Update1;
-                    stateChar = '';
+                    stateText = "RUN";
                     break;
                 default:
                     Runtime.UpdateFrequency = UpdateFrequency.None;
@@ -107,7 +106,7 @@ namespace IngameScript
             }
             State = state;
             logger.PrintLn($"Changed state to {state}");
-            logger.SetStatus($"LM {VERSION}            {components.Count}            {stateChar}");
+            logger.SetStatus($"LM {VERSION}          [ {components.Count} ]        [ {stateText} ]");
         }
 
         void Start()
