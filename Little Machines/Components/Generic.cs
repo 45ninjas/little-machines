@@ -27,11 +27,8 @@ namespace IngameScript
             public Blocks<IMyTerminalBlock> blocks = new Blocks<IMyTerminalBlock>();
             public string Query = "Blocks";
             public float Speed = 1f;
-            public float Smoothing = 0.01f;
             public string PropertyId = "Velocity";
-            public Axis InputAxis = Axis.Roll;
-
-            float actualSpeed;
+            public SmoothedAxis Input;
 
             public override void Start(IMyShipController cockpit)
             {
@@ -42,7 +39,8 @@ namespace IngameScript
                         Log($"'{PropertyId}' property absent on '{blk.CustomName}' block.");
                 }
 
-                Log($"Found {blocks.Count} blocks.");
+                if (blocks.Count == 0)
+                    Log($"Found {blocks.Count} blocks.");
             }
 
             public override void Stop()
@@ -52,26 +50,23 @@ namespace IngameScript
 
             public override void Tick()
             {
-                actualSpeed = MathHelper.Lerp(actualSpeed, lm.GetAxis(InputAxis) * Speed, Smoothing);
-                actualSpeed = MathHelper.Clamp(actualSpeed, -Speed, Speed);
-                blocks.Set(PropertyId, actualSpeed);
+                float target = Input.Get() * Speed;
+                blocks.Set(PropertyId, target);
             }
 
             public override void ReadCfg(MyIni ini)
             {
-                Smoothing = ini.Get(section, "smoothing").ToSingle(Smoothing);
                 Speed = ini.Get(section, "speed").ToSingle(Speed);
                 Query = ini.Get(section, "query").ToString(Query);
                 PropertyId = ini.Get(section, "property id").ToString(PropertyId);
-                InputAxis = lm.AxisFromString(ini.Get(section, "input axis").ToString(InputAxis.ToString()));
+                Input = new SmoothedAxis(lm, ini, section);
             }
             public override void WriteCfg(MyIni ini)
             {
-                ini.Set(section, "smoothing", Smoothing);
                 ini.Set(section, "speed", Speed);
                 ini.Set(section, "query", Query);
                 ini.Set(section, "property id", PropertyId);
-                ini.Set(section, "input axis", InputAxis.ToString());
+                Input.WriteDefault(ini, section);
             }
         }
     }

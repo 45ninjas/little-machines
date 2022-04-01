@@ -27,12 +27,12 @@ namespace IngameScript
             public Blocks<IMyMotorStator> wheels = new Blocks<IMyMotorStator>();
             Dictionary<long, float> wheelDots;
 
-            public float Smoothing = 0.1f;
+            public float Smoothing = 10f;
             string wheelQuery = "Drive Wheels";
             public float Speed = 40;
 
-            float forwardInput;
-            float turnInput;
+            private SmoothedAxis horizontalInput;
+            private SmoothedAxis forwardInput;
 
             public override void Start(IMyShipController cockpit)
             {
@@ -54,7 +54,9 @@ namespace IngameScript
                     var posDot = (com - wheel.GetPosition()).Dot(right);
                     wheelDots.Add(wheel.EntityId, (float)posDot);
                 }
-                Log($"Found: {wheelDots.Count} wheels.");
+
+                if (wheelDots.Count == 0)
+                    Log($"Found: {wheelDots.Count} wheels.");
             }
 
             public override void Stop()
@@ -65,27 +67,33 @@ namespace IngameScript
 
             public override void Tick()
             {
-                forwardInput = MathHelper.Lerp(forwardInput, lm.GetAxis(Axis.Forward), Smoothing);
-                turnInput = MathHelper.Lerp(turnInput, lm.GetAxis(Axis.Horizontal), Smoothing);
+                float fwd = forwardInput.Get();
+                float turn = horizontalInput.Get();
 
                 foreach (IMyMotorStator wheel in wheels)
                 {
                     float dot = wheelDots[wheel.EntityId];
-                    wheel.TargetVelocityRPM = (turnInput * -dot + forwardInput) * dot * Speed;
+                    wheel.TargetVelocityRPM = (turn * -dot + fwd) * dot * Speed;
                 }
             }
 
             public override void ReadCfg(MyIni ini)
             {
-                Smoothing = ini.Get(section, "smoothing").ToSingle(Smoothing);
                 Speed = ini.Get(section, "speed").ToSingle(Speed);
                 wheelQuery = ini.Get(section, "wheels").ToString(wheelQuery);
+                Smoothing = ini.Get(section, "smoothing").ToSingle(Smoothing);
+                var turn = lm.AxisFromString(ini.Get(section, "turn axis").ToString(Axis.Horizontal.ToString()));
+                var drive = lm.AxisFromString(ini.Get(section, "drive axis").ToString(Axis.Forward.ToString()));
+                horizontalInput = new SmoothedAxis(lm, turn, Smoothing);
+                forwardInput = new SmoothedAxis(lm, drive, Smoothing);
             }
             public override void WriteCfg(MyIni ini)
             {
-                ini.Set(section, "smoothing", Smoothing);
                 ini.Set(section, "speed", Speed);
                 ini.Set(section, "wheels", wheelQuery);
+                ini.Set(section, "smoothing", Smoothing);
+                ini.Set(section, "turn axis", Axis.Horizontal.ToString());
+                ini.Set(section, "drive axis", Axis.Forward.ToString());
             }
         }
     }

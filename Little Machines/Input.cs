@@ -33,6 +33,55 @@ namespace IngameScript
             Roll
         }
 
+        public class SmoothedAxis
+        {
+            public readonly Axis Axis;
+            public readonly float Smoothing;
+            float current;
+            private readonly Program lm;
+
+            public SmoothedAxis(Program lm, MyIni ini, string section, string prefix = null)
+            {
+                if (prefix != null)
+                    prefix = prefix + ".";
+
+                Smoothing = ini.Get(section, prefix + "smoothing").ToSingle(20f);
+                Axis = lm.AxisFromString(ini.Get(section, prefix + "axis").ToString(Axis.None.ToString()));
+
+                this.lm = lm; ;
+            }
+            public SmoothedAxis(Program lm, Axis axis, float response)
+            {
+                Smoothing = response;
+                Axis = axis;
+                this.lm = lm;
+            }
+            public float Get()
+            {
+                float target = MathHelper.Clamp(lm.GetAxis(Axis), -1f, 1f);
+                // Linear smoothing
+                // current += delta * Response;
+                // S-Curve smoothing
+                current = current + Math.Sign(target - current) / Smoothing;
+
+                // Snap to zero if we are close to zero.
+                if (Math.Abs(current) < 0.01f)
+                    current = 0.0f;
+
+                // Return our current value.
+                return current;
+            }
+            public float GetRaw() => lm.GetAxis(Axis);
+            public void WriteDefault(MyIni ini, string section, string prefix = null)
+            {
+                if (prefix != null)
+                    prefix = prefix + ".";
+
+                ini.Set(section, prefix + "smoothing", Smoothing);
+                ini.Set(section, prefix + "axis", Axis.ToString());
+            }
+        }
+
         public Axis AxisFromString(string val)
         {
             Axis axis;

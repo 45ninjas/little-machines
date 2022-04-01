@@ -28,10 +28,7 @@ namespace IngameScript
             Dictionary<long, float> motorDots;
             public string Query = "Blocks";
             public float Speed = 1f;
-            public float Smoothing = 0.1f;
-            public Axis InputAxis = Axis.Roll;
-
-            float speed;
+            public SmoothedAxis Input;
 
             public override void Start(IMyShipController cockpit)
             {
@@ -51,7 +48,9 @@ namespace IngameScript
                     //var dirDot = Math.Abs(motor.WorldMatrix.Up.Dot(right));
                     motorDots.Add(motor.EntityId, (float)posDot);
                 }
-                Log($"Found {motorDots.Count} rotors.");
+
+                if(motorDots.Count == 0)
+                    Log($"Found {motorDots.Count} rotors.");
             }
 
             public override void Stop()
@@ -61,28 +60,22 @@ namespace IngameScript
 
             public override void Tick()
             {
-                speed = MathHelper.Lerp(speed, lm.GetAxis(InputAxis) * Speed, Smoothing);
-                speed = MathHelper.Clamp(speed, -Speed, Speed);
-
+                float speed = Input.Get() * Speed;
                 foreach (var motor in blocks)
-                {
                     motor.TargetVelocityRPM = speed * motorDots[motor.EntityId];
-                }
             }
 
             public override void ReadCfg(MyIni ini)
             {
-                Smoothing = ini.Get(section, "smoothing").ToSingle(Smoothing);
                 Speed = ini.Get(section, "speed").ToSingle(Speed);
                 Query = ini.Get(section, "query").ToString(Query);
-                InputAxis = lm.AxisFromString(ini.Get(section, "input axis").ToString(InputAxis.ToString()));
+                Input = new SmoothedAxis(lm, ini, section);
             }
             public override void WriteCfg(MyIni ini)
             {
-                ini.Set(section, "smoothing", Smoothing);
                 ini.Set(section, "speed", Speed);
                 ini.Set(section, "query", Query);
-                ini.Set(section, "input axis", InputAxis.ToString());
+                Input.WriteDefault(ini, section);
             }
         }
     }
