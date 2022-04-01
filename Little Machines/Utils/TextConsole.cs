@@ -33,6 +33,8 @@ namespace IngameScript
             Queue<string> lines;
             int maxLines;
 
+            string status;
+
             StringBuilder sb;
             public TextConsole(IMyTextSurface surface)
             {
@@ -41,10 +43,25 @@ namespace IngameScript
             public void PrintLn(string msg)
             {
                 lines.Enqueue(msg);
+                Redraw();
+            }
+
+            public void SetStatus(string status)
+            {
+                this.status = status;
+                Redraw();
+            }
+
+            private void Redraw()
+            {
+                sb.Clear();
+
+                sb.AppendLine(status);
+                sb.AppendLine("--------------------------------------------------------------------------");
+
                 while (lines.Count > maxLines)
                     lines.Dequeue();
 
-                sb.Clear();
                 foreach (var line in lines)
                     sb.AppendLine(line);
 
@@ -59,6 +76,8 @@ namespace IngameScript
                 this.surface = surface;
                 float aspect = surface.SurfaceSize.Y / surface.SurfaceSize.X;
                 maxLines = (int)((18 / surface.FontSize) * aspect);
+                // Subtract for our status lines.
+                maxLines -= 3;
                 lines = new Queue<string>(surface.GetText().Split('\n'));
             }
         }

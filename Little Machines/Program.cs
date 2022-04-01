@@ -34,7 +34,8 @@ namespace IngameScript
         MyIniKey logSurfaceKey = new MyIniKey("lm.core", "log-surface");
         TextConsole logger;
 
-        const string HEADER = "Little Machines\nVersion 0.3.2 alpha";
+        const string VERSION = "0.4.0 A";
+        const string HEADER = "Little Machines\nVersion " + VERSION;
 
         public enum MachineState
         {
@@ -84,24 +85,29 @@ namespace IngameScript
             if (state == State)
                 return;
 
+            char stateChar = '';
             switch (state)
             {
-                case MachineState.Uninitialized:
-                    Runtime.UpdateFrequency = UpdateFrequency.None;
-                    break;
                 case MachineState.Error:
                     Runtime.UpdateFrequency = UpdateFrequency.None;
+                    stateChar = '';
                     logger.PrintLn("Stopped by Error!");
                     break;
                 case MachineState.Standby:
                     Runtime.UpdateFrequency = UpdateFrequency.Update100;
+                    stateChar = '';
                     break;
                 case MachineState.Running:
                     Runtime.UpdateFrequency = UpdateFrequency.Update1;
+                    stateChar = '';
+                    break;
+                default:
+                    Runtime.UpdateFrequency = UpdateFrequency.None;
                     break;
             }
             State = state;
             logger.PrintLn($"Changed state to {state}");
+            logger.SetStatus($"LM {VERSION}            {components.Count}            {stateChar}");
         }
 
         void Start()
