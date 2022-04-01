@@ -22,19 +22,18 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
-        Dictionary<string, Stack<Component>> avalibleComponents = new Dictionary<string, Stack<Component>>()
-        {
-            {"skidsteer", new Stack<Component>(new[] { new SkidSteer() }) },
-            {"generic", new Stack<Component>(new[] { new Generic(), new Generic(), new Generic(), new Generic(),new Generic(),new Generic(),new Generic() }) },
-            {"pivot", new Stack<Component>(new[] { new Pivot(), new Pivot() }) },
-        };
+        Dictionary<string, Stack<Component>> avalibleComponents;
 
         List<IMyShipController> controllers;
         IMyShipController activeController;
         MyIniKey logSurfaceKey = new MyIniKey("lm.core", "log-surface");
+        MyIniKey hotloadKey = new MyIniKey("lm.core", "hotload");
+        bool hotload = false;
         TextConsole logger;
 
-        const string VERSION = "0.4.0 A";
+        int lastHash;
+
+        const string VERSION = "0.4.2 A";
         const string HEADER = "Little Machines\nVersion " + VERSION;
 
         public enum MachineState
@@ -49,6 +48,17 @@ namespace IngameScript
 
         public Program()
         {
+            init();
+        }
+
+        void init()
+        {
+            avalibleComponents = new Dictionary<string, Stack<Component>>()
+            {
+                {"skidsteer", new Stack<Component>(new[] { new SkidSteer() }) },
+                {"generic", new Stack<Component>(new[] { new Generic(), new Generic(), new Generic(), new Generic(),new Generic(),new Generic(),new Generic() }) },
+                {"pivot", new Stack<Component>(new[] { new Pivot(), new Pivot() }) },
+            };
             // Parse the Custom Data.
             var ini = new MyIni();
             if (!ini.TryParse(Me.CustomData))
@@ -78,6 +88,13 @@ namespace IngameScript
             logger.PrintLn($"Loaded {components.Count} components.");
             SetState(MachineState.Standby);
             logger.PrintLn("Finihsed Startup");
+
+            hotload = ini.Get(hotloadKey).ToBoolean(false);
+            if (hotload)
+            {
+                lastHash = Me.CustomData.GetHashCode();
+                logger.PrintLn("WARN: Hotload ON!");
+            }
         }
 
         void SetState(MachineState state)
@@ -165,16 +182,22 @@ namespace IngameScript
 
         public void Main(string argument, UpdateType updateSource)
         {
-            if (updateSource.HasFlag(UpdateType.Update100) && State == MachineState.Standby)
+            if (updateSource.HasFlag(UpdateType.Update100))
             {
-                foreach (var controller in controllers)
+                if (hotload && Me.CustomData.GetHashCode() != lastHash)
+                    init();
+
+                if (State == MachineState.Standby)
                 {
-                    if (controller.IsUnderControl)
+                    foreach (var controller in controllers)
                     {
-                        SetState(MachineState.Running);
-                        activeController = controller;
-                        Start();
-                        break;
+                        if (controller.IsUnderControl)
+                        {
+                            SetState(MachineState.Running);
+                            activeController = controller;
+                            Start();
+                            break;
+                        }
                     }
                 }
             }
