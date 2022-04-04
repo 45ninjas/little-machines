@@ -25,14 +25,27 @@ namespace IngameScript
         public class SkidSteer : Component
         {
             public Blocks<IMyMotorStator> wheels = new Blocks<IMyMotorStator>();
-            Dictionary<long, float> wheelDots;
+            Dictionary<long, float> dots;
 
-            public float Smoothing = 10f;
+            float Smoothing = 10f;
             string wheelQuery = "Drive Wheels";
-            public float Speed = 40;
+            float Speed = 40;
 
             private SmoothedAxis horizontalInput;
             private SmoothedAxis forwardInput;
+
+            const string AUTO_DIR = "auto";
+            private string direction = AUTO_DIR;
+            readonly Dictionary<string, Vector3> directions = new Dictionary<string, Vector3>
+            {
+                {AUTO_DIR, Vector3.Zero },
+                {"+x", Vector3.UnitX },
+                {"+y", Vector3.UnitY },
+                {"+z", Vector3.UnitZ },
+                {"-x", -Vector3.UnitX },
+                {"-y", -Vector3.UnitY },
+                {"-z", -Vector3.UnitZ },
+            };
 
             public override void Start(IMyShipController cockpit)
             {
@@ -42,23 +55,33 @@ namespace IngameScript
                 if (wheels.Count < 0)
                     throw new Exception("No wheels found.");
 
-                // Get a vector that points to the right of the cockpit.
-                var right = cockpit.WorldMatrix.Right;
-                // Get the center of mass.
-                var com = cockpit.CenterOfMass;
+                // Get our direction.
+                Vector3 dir;
+                if (direction == AUTO_DIR)
+                    dir = cockpit.WorldMatrix.Right;
+                else
+                    dir = Vector3.TransformNormal(directions[direction], wheels.First().CubeGrid.WorldMatrix);
 
-                // Fill a dict. of the dot product of each wheel from the center of mass.
-                wheelDots = new Dictionary<long, float>(wheels.Count);
-                foreach (IMyMotorStator wheel in wheels)
-                {
-                    var posDot = (com - wheel.GetPosition()).Dot(right);
-                    wheelDots.Add(wheel.EntityId, (float)posDot);
+                // Get the middle of all our wheels.
+                var origin = Vector3D.Zero;
+                foreach (var wheel in wheels)
+                    origin += wheel.GetPosition();
+                origin /= wheels.Count;
+
+                // Save the dot product of each wheel for later.
+                dots = new Dictionary<long, float>(wheels.Count);
+                foreach (IMyMotorStator wheel in wheels) {
+                    // Get the 
+                    Vector3 delta = origin - wheel.GetPosition();
+                    var normal = Vector3.ProjectOnVector(ref delta, ref dir);
+                    normal = Vector3.ClampToSphere(normal * 2, 1f);
+
+                    dots.Add(wheel.EntityId, normal.Dot(dir));
                 }
-
-                if (wheelDots.Count == 0)
-                    Log($"Found: {wheelDots.Count} wheels.");
+                // When there's no wheels... let the user know.
+                if (dots.Count == 0)
+                    Log($"Found: {dots.Count} wheels.");
             }
-
             public override void Stop()
             {
                 // Stop all the wheels from spinning.
@@ -68,12 +91,12 @@ namespace IngameScript
             public override void Tick()
             {
                 float fwd = forwardInput.Get();
-                float turn = horizontalInput.Get();
+                float turn = -horizontalInput.Get();
 
                 foreach (IMyMotorStator wheel in wheels)
                 {
-                    float dot = wheelDots[wheel.EntityId];
-                    wheel.TargetVelocityRPM = (turn * -dot + fwd) * dot * Speed;
+                    float dot = dots[wheel.EntityId];
+                    wheel.TargetVelocityRPM = (turn + (fwd * dot)) * Speed;
                 }
             }
 
@@ -86,6 +109,11 @@ namespace IngameScript
                 var drive = lm.AxisFromString(ini.Get(section, "drive axis").ToString(Axis.Forward.ToString()));
                 horizontalInput = new SmoothedAxis(lm, turn, Smoothing);
                 forwardInput = new SmoothedAxis(lm, drive, Smoothing);
+
+                var dirText = ini.Get(section, "direction").ToString(AUTO_DIR).ToLower();
+                if (!directions.ContainsKey(dirText))
+                    throw new Exception($"Invalid value '{dirText}' for direction");
+                direction = dirText;
             }
             public override void WriteCfg(MyIni ini)
             {
@@ -94,6 +122,7 @@ namespace IngameScript
                 ini.Set(section, "smoothing", Smoothing);
                 ini.Set(section, "turn axis", Axis.Horizontal.ToString());
                 ini.Set(section, "drive axis", Axis.Forward.ToString());
+                ini.Set(section, "direction", AUTO_DIR);
             }
         }
     }

@@ -1,2 +1,21 @@
 ﻿Little Machines by 45Ninjas.
-Go to https://git.tomp.id.au/45Ninjas/little-machines/wiki for help.
+
+This machine is currenlty running an alpha version
+of Little Machines. This script is still under
+development and isn't ready for full release yet.
+
+Script, Source and Guides will be released once a more
+stable beta release is avalible. Stay tuned.
+
+ "Little Machines is a universal machinery control
+  script. Converting keyboard, mouse & controller input
+  into clangable motion. Great for making diggers,
+  pushers, lifters, Whatever you can imagine!
+
+  Little Machines uses a component system providing an
+  easy to understand configuration layout with sane
+  defaults."
+   
+     - Project's Wiki
+
+https://git.tomp.id.au/45Ninjas/little-machines/wiki
