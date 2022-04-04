@@ -168,7 +168,7 @@ namespace IngameScript
                 }
                 catch (Exception e)
                 {
-                    logger.PrintLn($"{component.GetType().Name}: Failed to Stop!");
+                    logger.PrintLn($"{component.GetType().Name}: Failed to Tick!");
                     logger.PrintLn(e.ToString());
                     SetState(MachineState.Error);
                 }
